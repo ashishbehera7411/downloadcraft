@@ -51,30 +51,6 @@ jobs:
         with:
           name: DownloadCraft-Linux
           path: dist/*
-  macos:
-    runs-on: macos-14
-    env:
-      MACOSX_DEPLOYMENT_TARGET: '12.0'
-    steps:
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-apple-darwin,x86_64-apple-darwin
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22
-      - uses: actions/setup-python@v7
-        with:
-          python-version: '3.12'
-      - run: node --test browser-extension/*.test.js
-      - run: cargo test --locked --release
-      - run: cargo build --locked --release --target aarch64-apple-darwin --target x86_64-apple-darwin
-      - run: lipo -create target/aarch64-apple-darwin/release/download_craft target/x86_64-apple-darwin/release/download_craft -output /tmp/download_craft
-      - run: python scripts/package.py --platform macos --arch Universal --binary /tmp/download_craft
-      - uses: actions/upload-artifact@v7
-        with:
-          name: DownloadCraft-macOS
-          path: dist/*.zip
   windows:
     runs-on: windows-latest
     steps:
@@ -103,7 +79,7 @@ jobs:
           path: dist/*.zip
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [linux, macos, windows]
+    needs: [linux, windows]
     runs-on: ubuntu-latest
     permissions:
       contents: write
