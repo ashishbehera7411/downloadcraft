@@ -26,6 +26,26 @@ jobs:
           curl -fL https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-x86_64 -o /tmp/runtime-x86_64
           python scripts/package_linux.py --binary target/x86_64-unknown-linux-gnu/release/download_craft --runtime /tmp/runtime-x86_64
           for image in dist/DownloadCraft-*-x86_64.AppImage; do "$image" --appimage-extract-and-run --version; done
+      - name: Package Chrome extension
+        run: |
+          python scripts/package_extensions.py --output /tmp/downloadcraft-extensions
+          python - <<'PY'
+          import json
+          import zipfile
+          from pathlib import Path
+
+          source = Path("/tmp/downloadcraft-extensions/browser-extension")
+          version = json.loads((source / "manifest.json").read_text())["version"]
+          archive = Path("dist") / f"DownloadCraft-Chrome-{version}.zip"
+          with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as bundle:
+              for file in sorted(source.rglob("*")):
+                  if file.is_file():
+                      bundle.write(file, file.relative_to(source))
+          with zipfile.ZipFile(archive) as bundle:
+              assert "manifest.json" in bundle.namelist()
+              assert "background.js" in bundle.namelist()
+          print(f"Built and verified {archive}")
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: DownloadCraft-Linux
