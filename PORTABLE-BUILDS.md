@@ -13,9 +13,10 @@ well as its universal executable. Native Mac packaging uses system codesign.
 
 The GitHub Actions workflow builds and uploads Linux and Windows desktop
 packages on pushes to `main`/`master`, pull requests, and manual runs. Pushing a
-`v*` tag builds those platforms and publishes their artifacts as a GitHub
-release with GitHub-generated release notes. macOS packages are not built or
-included in automated releases.
+`v*` tag builds those platforms. Each push to `master` also publishes the
+artifacts as a GitHub release with GitHub-generated notes, using a unique tag
+such as `v0.9.7-build.3`. macOS packages are not built or included in automated
+releases.
 
 All previous deep-review fixes are included; proposals in REVIEW-0.9.6.1.md are
 not implemented. Paused/failed downloads may retain `.dcmeta` for resuming;
