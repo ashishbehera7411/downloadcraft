@@ -4,16 +4,17 @@ on:
   pull_request:
   push:
     branches: [main, master]
+    tags: ['v*']
 jobs:
   linux:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
       - run: sudo apt-get update && sudo apt-get install -y pkg-config libx11-dev libxi-dev libxcursor-dev libxrandr-dev libgl1-mesa-dev libdbus-1-dev libxkbcommon-dev rpm squashfs-tools
@@ -46,7 +47,7 @@ jobs:
               assert "background.js" in bundle.namelist()
           print(f"Built and verified {archive}")
           PY
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: DownloadCraft-Linux
           path: dist/*
@@ -55,14 +56,14 @@ jobs:
     env:
       MACOSX_DEPLOYMENT_TARGET: '12.0'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-apple-darwin,x86_64-apple-darwin
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
       - run: node --test browser-extension/*.test.js
@@ -70,19 +71,19 @@ jobs:
       - run: cargo build --locked --release --target aarch64-apple-darwin --target x86_64-apple-darwin
       - run: lipo -create target/aarch64-apple-darwin/release/download_craft target/x86_64-apple-darwin/release/download_craft -output /tmp/download_craft
       - run: python scripts/package.py --platform macos --arch Universal --binary /tmp/download_craft
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: DownloadCraft-macOS
           path: dist/*.zip
   windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
       - name: Windows resource compiler
@@ -96,7 +97,26 @@ jobs:
       - run: cargo test --locked --release
       - run: cargo build --locked --release
       - run: python scripts/package.py --platform windows --arch x64
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: DownloadCraft-Windows
           path: dist/*.zip
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [linux, macos, windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: DownloadCraft-*
+          path: dist
+          merge-multiple: true
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --title "Download Craft $GITHUB_REF_NAME" \
+            --generate-notes
